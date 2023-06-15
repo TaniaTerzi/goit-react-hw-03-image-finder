@@ -16,30 +16,113 @@
 // };
 
 import React, { Component } from "react";
-import axios from "axios";
-
+import { fetchImages } from "./FetchImage/FetchImage.js";
 import { ImageGallery } from './ImageGallery/ImageGallery.js'
+import { Searchbar } from './Searchbar/Searchbar.js'
+import { Modal } from "./Modal/Modal.js";
+import { Button } from "./Button/Button.js";
+import { Loader } from "./Loader/Loader.js";
+
 import css from '../components/styles.css'
 
-
-const baseURL = "https://pixabay.com/api/";
-const key = '35754310-dc9731ff73d92a01be2931609';
 
 export class App extends Component {
   state = {
     images: [],
+    isLoading: false,
+    currentSearch: '',
+    pageNr: 1,
+    modalOpen: false,
+    modalImg: '',
+    modalAlt: '',
+    
+  };
+
+  handleSubmit = async e => {
+    e.preventDefault();
+    this.setState({ isLoading: true });
+    const inputForSearch = e.target.elements.inputForSearch;
+    if (inputForSearch.value.trim() === '') {
+      alert('Введіть пошуковий запит');
+      return;
+    }
+    const response = await fetchImages(inputForSearch.value, 1);
+    this.setState({
+      images: response,
+      isLoading: false,
+      currentSearch: inputForSearch.value,
+      page: 1,
+    });
+  };
+
+  handleClickMore = async () => {
+    const response = await fetchImages(
+      this.state.currentSearch,
+      this.state.pageNr + 1
+    );
+    this.setState({
+      images: [...this.state.images, ...response],
+      pageNr: this.state.pageNr + 1,
+    });
+  };
+
+  handleImageClick = e => {
+    this.setState({
+      modalOpen: true,
+      modalAlt: e.target.alt,
+      modalImg: e.target.name,
+    });
+  };
+
+  handleModalClose = () => {
+    this.setState({
+      modalOpen: false,
+      modalImg: '',
+      modalAlt: '',
+    });
+  };
+
+  handleKeyDown = event => {
+    if (event.code === 'Escape') {
+      this.handleModalClose();
+    }
   };
 
   async componentDidMount() {
-    const response = await axios.get(`${baseURL}?q=cat&page=1&key=${key}&image_type=photo&orientation=horizontal&per_page=12`);
-    this.setState({ images: response.data.hits });
+    window.addEventListener('keydown', this.handleKeyDown);
   }
 
   render() {
-    const { images } = this.state;
     return (
+      
       <div className={css.App}>
-        {images.length > 0 ? <ImageGallery images={images} /> : null}
+        {this.state.isLoading ? (
+          <Loader />
+            ) : (
+          <>
+          <Searchbar onSubmit={this.handleSubmit} />
+
+          <ImageGallery
+            onImageClick={this.handleImageClick}
+            images={this.state.images}
+          />
+
+    {this.state.images.length > 0 ? (
+      <Button onClick={this.handleClickMore} />
+    ) : null}
+          </>
+
+        
+        )}
+
+            {this.state.modalOpen ? (
+          <Modal
+            src={this.state.modalImg}
+            alt={this.state.modalAlt}
+            handleClose={this.handleModalClose}
+          />
+        ) : null}
+
       </div>
     );
   }
