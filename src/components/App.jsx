@@ -51,7 +51,7 @@ export class App extends Component {
       images: response,
       isLoading: false,
       currentSearch: inputForSearch.value,
-      page: 1,
+      pageNr: 1,
     });
   };
 
